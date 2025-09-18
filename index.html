@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .input-section {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        #task-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        
+        #add-btn {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        #add-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .filters {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .filter-btn {
+            background: none;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 5px;
+            cursor: pointer;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .filter-btn.active {
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .task-list {
+            list-style-type: none;
+        }
+        
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            animation: fadeIn 0.5s;
+        }
+        
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        
+        .task-text {
+            flex: 1;
+            margin-left: 10px;
+            word-break: break-word;
+        }
+        
+        .completed .task-text {
+            text-decoration: line-through;
+            color: #95a5a6;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        
+        .delete-btn:hover {
+            opacity: 1;
+        }
+        
+        .task-count {
+            margin-top: 20px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @media (max-width: 500px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .input-section {
+                flex-direction: column;
+            }
+            
+            #task-input {
+                border-radius: 4px;
+                margin-bottom: 10px;
+            }
+            
+            #add-btn {
+                border-radius: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        
+        <div class="input-section">
+            <input type="text" id="task-input" placeholder="Добавьте новую задачу...">
+            <button id="add-btn">Добавить</button>
+        </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Все</button>
+            <button class="filter-btn" data-filter="active">Активные</button>
+            <button class="filter-btn" data-filter="completed">Завершенные</button>
+        </div>
+        
+        <ul class="task-list" id="task-list">
+            <!-- Задачи будут добавляться здесь -->
+        </ul>
+        
+        <div class="task-count" id="task-count">
+            Задач осталось: 0
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Элементы DOM
+            const taskInput = document.getElementById('task-input');
+            const addBtn = document.getElementById('add-btn');
+            const taskList = document.getElementById('task-list');
+            const taskCount = document.getElementById('task-count');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            
+            // Переменные состояния
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            let currentFilter = 'all';
+            
+            // Инициализация приложения
+            renderTasks();
+            updateTaskCount();
+            
+            // Добавление задачи
+            addBtn.addEventListener('click', addTask);
+            taskInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTask();
+                }
+            });
+            
+            // Фильтрация задач
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Убрать активный класс у всех кнопок
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    // Добавить активный класс к текущей кнопке
+                    this.classList.add('active');
+                    // Установить текущий фильтр
+                    currentFilter = this.getAttribute('data-filter');
+                    // Перерисовать задачи
+                    renderTasks();
+                });
+            });
+            
+            function addTask() {
+                const taskText = taskInput.value.trim();
+                
+                if (taskText === '') {
+                    alert('Пожалуйста, введите задачу!');
+                    return;
+                }
+                
+                const newTask = {
+                    id: Date.now(),
+                    text: taskText,
+                    completed: false
+                };
+                
+                tasks.push(newTask);
+                saveTasks();
+                renderTasks();
+                updateTaskCount();
+                
+                // Очистить поле ввода
+                taskInput.value = '';
+                taskInput.focus();
+            }
+            
+            function toggleTaskCompleted(id) {
+                tasks = tasks.map(task => {
+                    if (task.id === id) {
+                        return { ...task, completed: !task.completed };
+                    }
+                    return task;
+                });
+                
+                saveTasks();
+                renderTasks();
+                updateTaskCount();
+            }
+            
+            function deleteTask(id) {
+                tasks = tasks.filter(task => task.id !== id);
+                saveTasks();
+                renderTasks();
+                updateTaskCount();
+            }
+            
+            function renderTasks() {
+                // Очистить список
+                taskList.innerHTML = '';
+                
+                // Отфильтровать задачи в зависимости от текущего фильтра
+                let filteredTasks = tasks;
+                if (currentFilter === 'active') {
+                    filteredTasks = tasks.filter(task => !task.completed);
+                } else if (currentFilter === 'completed') {
+                    filteredTasks = tasks.filter(task => task.completed);
+                }
+                
+                // Добавить задачи в список
+                filteredTasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.className = `task-item ${task.completed ? 'completed' : ''}`;
+                    
+                    li.innerHTML = `
+                        <input type="checkbox" ${task.completed ? 'checked' : ''}>
+                        <span class="task-text">${task.text}</span>
+                        <button class="delete-btn">×</button>
+                    `;
+                    
+                    // Добавить обработчики событий
+                    const checkbox = li.querySelector('input');
+                    checkbox.addEventListener('change', () => toggleTaskCompleted(task.id));
+                    
+                    const deleteBtn = li.querySelector('.delete-btn');
+                    deleteBtn.addEventListener('click', () => deleteTask(task.id));
+                    
+                    taskList.appendChild(li);
+                });
+            }
+            
+            function updateTaskCount() {
+                const activeTasksCount = tasks.filter(task => !task.completed).length;
+                taskCount.textContent = `Задач осталось: ${activeTasksCount}`;
+            }
+            
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+        });
+    </script>
+</body>
+</html>
